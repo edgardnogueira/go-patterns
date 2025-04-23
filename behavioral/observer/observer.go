@@ -1,5 +1,9 @@
 package observer
 
+import (
+	"fmt"
+)
+
 // WeatherData represents the measurement data
 type WeatherData struct {
 	Temperature float64
