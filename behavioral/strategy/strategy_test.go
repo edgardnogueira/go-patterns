@@ -37,9 +37,9 @@ func TestCryptoStrategy(t *testing.T) {
 	crypto := NewCryptoStrategy("Bitcoin", "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa")
 	result := crypto.Pay(0.005)
 
-	expected := "Paid 0.01 using Bitcoin Wallet: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-	if !strings.Contains(result, "Bitcoin Wallet") {
-		t.Errorf("Expected result to contain 'Bitcoin Wallet', got '%s'", result)
+	// We just check if the result contains the right components
+	if !strings.Contains(result, "Paid 0.005") || !strings.Contains(result, "Bitcoin Wallet") {
+		t.Errorf("Expected result to contain 'Paid 0.005' and 'Bitcoin Wallet', got '%s'", result)
 	}
 
 	expectedName := "Bitcoin Cryptocurrency"
