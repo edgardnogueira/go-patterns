@@ -1,5 +1,9 @@
 package bridge
 
+import (
+	"fmt"
+)
+
 // DrawingAPI is the Implementor interface in the Bridge pattern.
 // It defines the interface for the implementation classes that do the actual drawing.
 type DrawingAPI interface {
