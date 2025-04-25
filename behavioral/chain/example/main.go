@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/edgardnogueira/go-patterns/behavioral/chain"
+	"strings"
 	"time"
 )
 
@@ -100,7 +101,7 @@ type BillingHandler struct {
 // NewBillingHandler creates a new billing handler
 func NewBillingHandler() *BillingHandler {
 	return &BillingHandler{
-		chain.BaseHandler{
+		BaseHandler: chain.BaseHandler{
 			name: "Billing Department",
 		},
 	}
