@@ -351,3 +351,13 @@ func (i *InvoiceDocument) DeepClone() Prototype {
 	
 	return cloned
 }
+
+// Recalculate updates the invoice totals based on line items
+func (i *InvoiceDocument) Recalculate() {
+	i.Subtotal = 0
+	for _, item := range i.LineItems {
+		i.Subtotal += item.Amount
+	}
+	i.TaxAmount = i.Subtotal * i.TaxRate
+	i.Total = i.Subtotal + i.TaxAmount
+}
