@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/edgardnogueira/go-patterns/project_structures/microservices/api-gateway/routers"
 	"github.com/edgardnogueira/go-patterns/project_structures/microservices/pkg/observability"
 )
 
@@ -58,7 +59,7 @@ func main() {
 	defer tp.Shutdown(context.Background())
 
 	// Create router
-	router := setupRouter(logger, *orderServiceURL, *inventoryServiceURL)
+	router := routers.SetupRouter(logger, *orderServiceURL, *inventoryServiceURL)
 
 	// Create HTTP server
 	server := &http.Server{
