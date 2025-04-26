@@ -25,6 +25,7 @@ Go interfaces are a collection of method signatures that objects can implement i
 7. [Testing with Interfaces](testing.go): Using interfaces for mocks and stubs
 8. [Interface Upgrade Patterns](upgrade.go): Evolving interfaces over time
 9. [Anti-Patterns](anti_patterns.go): Common interface mistakes to avoid
+10. [Standard Library Interface Examples](stdlib_examples.go): Real-world interface patterns from Go's standard library
 
 ## Best Practices
 
@@ -69,7 +70,7 @@ Go interfaces are a collection of method signatures that objects can implement i
 ## Comparison with Inheritance-Based Languages
 
 | Go's Interface Approach | Inheritance-Based Approach |
-|------------------------|----------------------------|
+|-------------------------|----------------------------|
 | Implicit implementation | Explicit implementation |
 | Composition of behaviors | Inheritance hierarchy |
 | Interface at use site | Interface at definition site |
