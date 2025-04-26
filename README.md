@@ -10,6 +10,7 @@ This repository contains implementations of various design patterns in Go, categ
 - **Structural Patterns**: Patterns concerning object composition and relationships
 - **Behavioral Patterns**: Patterns focusing on communication between objects
 - **Go-specific Patterns**: Idiomatic Go patterns that leverage Go's unique features
+- **SOLID Principles**: Implementation of the SOLID principles with real-world examples
 
 ## Project Structure
 
@@ -41,6 +42,13 @@ This repository contains implementations of various design patterns in Go, categ
 │   ├── strategy/        # Strategy pattern
 │   ├── template/        # Template Method pattern
 │   └── visitor/         # Visitor pattern
+│
+├── solid/               # SOLID principles
+│   ├── single_responsibility/  # Single Responsibility Principle
+│   ├── open_closed/           # Open/Closed Principle
+│   ├── liskov_substitution/   # Liskov Substitution Principle
+│   ├── interface_segregation/ # Interface Segregation Principle
+│   └── dependency_inversion/  # Dependency Inversion Principle
 │
 └── idioms/              # Go-specific idiomatic patterns
     ├── errors/          # Error handling patterns
