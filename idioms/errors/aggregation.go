@@ -3,6 +3,7 @@ package errors
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 )
@@ -135,18 +136,39 @@ func (c *ErrorCollector) Errors() []error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	
-	// Make a copy to prevent external modification
+	// Make a copy to avoid race conditions
 	result := make([]error, len(c.errors))
 	copy(result, c.errors)
 	
 	return result
 }
 
-// Go1.20 errors.Join
+// Unwrap implementation for Go 1.20+ error joining
 // -----------------------------------------------------
 
-// JoinErrors joins multiple errors into a single error.
-// This is similar to errors.Join in Go 1.20+
+// Unwrap for MultiError returns the slice of contained errors
+// This is compatible with Go 1.20's errors.Join approach
+func (m *MultiError) Unwrap() []error {
+	return m.Errors
+}
+
+// Unwrap for ErrorCollector returns the slice of contained errors
+func (c *ErrorCollector) Unwrap() []error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	// Make a copy to avoid race conditions
+	result := make([]error, len(c.errors))
+	copy(result, c.errors)
+	
+	return result
+}
+
+// Using Go 1.20's errors.Join (if available)
+// -----------------------------------------------------
+
+// JoinErrors is a wrapper around errors.Join (for Go 1.20+)
+// For earlier Go versions, it falls back to our implementation
 func JoinErrors(errs ...error) error {
 	// Filter out nil errors
 	var nonNil []error
@@ -161,125 +183,124 @@ func JoinErrors(errs ...error) error {
 		return nil
 	}
 	
-	// In Go 1.20+, you would use: return errors.Join(nonNil...)
-	// Our implementation uses MultiError
-	return &MultiError{Errors: nonNil}
-}
-
-// Error wrapping with multiple errors
-// -----------------------------------------------------
-
-// WrapMultipleErrors wraps multiple errors with context
-func WrapMultipleErrors(message string, errs ...error) error {
-	// Join the errors
-	err := JoinErrors(errs...)
-	if err == nil {
-		return nil
+	// Return the single error if there's only one
+	if len(nonNil) == 1 {
+		return nonNil[0]
 	}
 	
-	// Wrap with context
-	return fmt.Errorf("%s: %w", message, err)
+	// Use errors.Join if running on Go 1.20+
+	return errors.Join(nonNil...)
 }
 
 // Practical examples
 // -----------------------------------------------------
 
-// ValidateUserData demonstrates collecting multiple validation errors
+// ValidateUserData demonstrates using MultiError for validation
 func ValidateUserData(user *User) error {
 	var errs MultiError
 	
-	// Check various fields
-	if user.Name == "" {
-		errs.Add(errors.New("name cannot be empty"))
+	if user == nil {
+		return errors.New("user cannot be nil")
 	}
 	
-	if len(user.Name) < 3 {
-		errs.Add(errors.New("name must be at least 3 characters"))
+	if user.ID == "" {
+		errs.Add(errors.New("user ID cannot be empty"))
+	}
+	
+	if user.Name == "" {
+		errs.Add(errors.New("user name cannot be empty"))
 	}
 	
 	if !isValidEmail(user.Email) {
 		errs.Add(errors.New("invalid email format"))
 	}
 	
-	if user.Age < 18 {
-		errs.Add(errors.New("must be at least 18 years old"))
-	}
-	
 	return errs.ErrorOrNil()
 }
 
-// ProcessMultipleItems demonstrates collecting errors from multiple operations
-func ProcessMultipleItems(items []string) error {
+// ProcessBatch demonstrates collecting errors from multiple operations
+func ProcessBatch(items []string) error {
 	var collector ErrorCollector
 	var wg sync.WaitGroup
 	
 	for _, item := range items {
 		wg.Add(1)
-		
 		go func(item string) {
 			defer wg.Done()
 			
-			// Process the item
 			err := processItem(item)
 			if err != nil {
-				collector.Add(fmt.Errorf("failed to process %s: %w", item, err))
+				collector.Add(fmt.Errorf("failed to process %q: %w", item, err))
 			}
 		}(item)
 	}
 	
-	// Wait for all goroutines to complete
 	wg.Wait()
-	
-	// Return error or nil
 	return collector.ErrorOrNil()
 }
 
-// BatchOperations demonstrates an all-or-nothing approach with error collection
-func BatchOperations(operations []func() error) error {
-	var errs MultiError
+// CleanupResources demonstrates aggregating errors from cleanup operations
+func CleanupResources(resources []io.Closer) error {
+	var errs []error
 	
-	// Attempt all operations
-	for i, op := range operations {
-		if err := op(); err != nil {
-			errs.Add(fmt.Errorf("operation %d failed: %w", i+1, err))
+	for _, r := range resources {
+		err := r.Close()
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
 	
-	// If any operation failed, return all errors
-	if err := errs.ErrorOrNil(); err != nil {
-		// In a real implementation, you might also roll back successful operations
-		return fmt.Errorf("batch failed: %w", err)
+	return CombineErrors(errs...)
+}
+
+// ApplyMigrations demonstrates sequential error collection
+func ApplyMigrations(migrations []Migration) error {
+	var errs MultiError
+	
+	for i, migration := range migrations {
+		if err := migration.Apply(); err != nil {
+			errs.Add(fmt.Errorf("migration %d failed: %w", i+1, err))
+			
+			// Stop at the first error for migrations
+			return errs.ErrorOrNil()
+		}
 	}
 	
 	return nil
 }
 
-// Helper functions for examples
+// Helper types and functions for examples
 // -----------------------------------------------------
 
-// Include the email validation function from earlier
-func isValidEmail(email string) bool {
-	// Basic validation for example purposes
-	return email != "" && containsChar(email, '@')
+// Migration is a simple example struct for ApplyMigrations
+type Migration struct {
+	Name string
+	SQL  string
 }
 
-// Add a helper function for ProcessMultipleItems
+// Apply simulates applying a migration
+func (m Migration) Apply() error {
+	// Simulate errors for certain SQL
+	if m.SQL == "INVALID" {
+		return errors.New("syntax error in migration")
+	}
+	return nil
+}
+
+// Email validation helper
+func isValidEmail(email string) bool {
+	return strings.Contains(email, "@") && strings.Contains(email, ".")
+}
+
+// Process an item (used in examples)
 func processItem(item string) error {
-	// Simulate processing
+	// Simulate errors for certain items
 	switch item {
+	case "error":
+		return errors.New("processing failed")
 	case "invalid":
 		return errors.New("invalid item")
-	case "not-found":
-		return ErrNotFound
-	case "permission":
-		return ErrPermissionDenied
 	default:
 		return nil
 	}
-}
-
-// User is extended for validation examples
-type UserWithAge struct {
-	User
-	Age int
 }
