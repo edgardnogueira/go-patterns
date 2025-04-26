@@ -205,7 +205,7 @@ type CommandQueue struct {
 
 // QueuedCommand is a command with execution time
 type QueuedCommand struct {
-	Command      Command
+	Command       Command
 	ExecutionTime time.Time
 }
 
@@ -224,7 +224,7 @@ func (q *CommandQueue) AddCommand(cmd Command) {
 // AddScheduledCommand adds a command to the queue to be executed at a specific time
 func (q *CommandQueue) AddScheduledCommand(cmd Command, executionTime time.Time) {
 	qc := QueuedCommand{
-		Command:      cmd,
+		Command:       cmd,
 		ExecutionTime: executionTime,
 	}
 	
@@ -236,10 +236,15 @@ func (q *CommandQueue) AddScheduledCommand(cmd Command, executionTime time.Time)
 	
 	// Insert the command at the correct position
 	if index == len(q.queue) {
+		// Append to the end if it's the latest command
 		q.queue = append(q.queue, qc)
 	} else {
-		q.queue = append(q.queue[:index+1], q.queue[index:]...)
-		q.queue[index] = qc
+		// Insert in the middle by creating a new slice with room for the new command
+		newQueue := make([]QueuedCommand, 0, len(q.queue)+1)
+		newQueue = append(newQueue, q.queue[:index]...)
+		newQueue = append(newQueue, qc)
+		newQueue = append(newQueue, q.queue[index:]...)
+		q.queue = newQueue
 	}
 }
 
@@ -248,7 +253,7 @@ func (q *CommandQueue) ExecuteDue() (int, error) {
 	now := time.Now()
 	executedCount := 0
 	
-	// Find all commands that are due
+	// Find all commands that are due (execution time <= now)
 	dueIndex := 0
 	for dueIndex < len(q.queue) && !q.queue[dueIndex].ExecutionTime.After(now) {
 		dueIndex++
@@ -257,7 +262,8 @@ func (q *CommandQueue) ExecuteDue() (int, error) {
 	// Execute due commands
 	for i := 0; i < dueIndex; i++ {
 		if err := q.queue[i].Command.Execute(); err != nil {
-			return executedCount, err
+			// If a command fails, return the error but keep track of how many were executed
+			return executedCount, fmt.Errorf("command execution failed: %w", err)
 		}
 		executedCount++
 	}
