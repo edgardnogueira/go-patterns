@@ -11,6 +11,7 @@ import (
 	"github.com/edgardnogueira/go-patterns/project_structures/hexagonal/internal/adapters/driven/database"
 	"github.com/edgardnogueira/go-patterns/project_structures/hexagonal/internal/adapters/driven/external"
 	"github.com/edgardnogueira/go-patterns/project_structures/hexagonal/internal/adapters/driving/worker"
+	"github.com/edgardnogueira/go-patterns/project_structures/hexagonal/internal/domain/model"
 	"github.com/edgardnogueira/go-patterns/project_structures/hexagonal/internal/domain/service"
 )
 
