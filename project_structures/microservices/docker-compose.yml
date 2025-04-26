@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ORDER_SERVICE_URL=http://order-service:8081
+      - INVENTORY_SERVICE_URL=http://inventory-service:8082
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - order-service
+      - inventory-service
+      - nats
+
+  # Order Service API
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: cmd/api/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - POSTGRES_DSN=postgres://postgres:postgres@postgres:5432/orders?sslmode=disable
+      - INVENTORY_SERVICE_URL=http://inventory-service:8082
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - postgres
+      - nats
+
+  # Order Service Worker
+  order-worker:
+    build:
+      context: ./order-service
+      dockerfile: cmd/worker/Dockerfile
+    environment:
+      - POSTGRES_DSN=postgres://postgres:postgres@postgres:5432/orders?sslmode=disable
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - postgres
+      - nats
+
+  # Inventory Service API
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: cmd/api/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - POSTGRES_DSN=postgres://postgres:postgres@postgres:5432/inventory?sslmode=disable
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - postgres
+      - nats
+
+  # Inventory Service Worker
+  inventory-worker:
+    build:
+      context: ./inventory-service
+      dockerfile: cmd/worker/Dockerfile
+    environment:
+      - POSTGRES_DSN=postgres://postgres:postgres@postgres:5432/inventory?sslmode=disable
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - postgres
+      - nats
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    environment:
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - mailhog
+      - nats
+
+  # Message Broker
+  nats:
+    image: nats:2.9-alpine
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: "--jetstream"
+
+  # Databases
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_MULTIPLE_DATABASES=orders,inventory
+    volumes:
+      - ./scripts/init-multiple-postgres-databases.sh:/docker-entrypoint-initdb.d/init-multiple-postgres-databases.sh
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # Mail Server for Development
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:v2.43.0
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:9.5.1
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres-data:
+  grafana-data:
