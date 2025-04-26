@@ -192,6 +192,19 @@ func JoinErrors(errs ...error) error {
 	return errors.Join(nonNil...)
 }
 
+// BatchOperations executes multiple operations and aggregates errors
+func BatchOperations(operations []func() error) error {
+	var errs MultiError
+	
+	for i, op := range operations {
+		if err := op(); err != nil {
+			errs.Add(fmt.Errorf("operation %d failed: %w", i+1, err))
+		}
+	}
+	
+	return errs.ErrorOrNil()
+}
+
 // Practical examples
 // -----------------------------------------------------
 
@@ -303,4 +316,11 @@ func processItem(item string) error {
 	default:
 		return nil
 	}
+}
+
+// User is a simple struct for user data validation examples
+type User struct {
+	ID    string
+	Name  string
+	Email string
 }
