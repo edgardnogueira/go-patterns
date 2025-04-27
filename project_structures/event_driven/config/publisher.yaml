@@ -1,0 +1,10 @@
+# Event Publisher Configuration
+database:
+  connectionString: "postgres://postgres:postgres@localhost:5432/eventstore?sslmode=disable"
+
+messageBroker:
+  connectionString: "amqp://guest:guest@localhost:5672/"
+
+publisher:
+  batchSize: 100
+  intervalSeconds: 5
